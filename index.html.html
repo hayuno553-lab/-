@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>생태계 균형 시뮬레이터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#16261c;
+    --panel:#1e3327;
+    --card:#24392c;
+    --line:#3a5240;
+    --cream:#f0ead8;
+    --muted:#a9b8ab;
+    --grass:#9cbf3d;
+    --rabbit:#d9a94f;
+    --fox:#c1532e;
+    --warn:#8b3a2e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--cream);
+    font-family:'Inter',sans-serif;
+    padding:32px 20px 60px;
+  }
+  .wrap{max-width:960px;margin:0 auto;}
+  .title{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:32px;
+    margin:0 0 6px;
+  }
+  .chain{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:28px;
+    font-size:14px;
+    color:var(--muted);
+  }
+  .chain span{
+    padding:4px 12px;
+    border-radius:999px;
+    font-weight:500;
+  }
+  .chain .g{background:rgba(156,191,61,0.18);color:var(--grass);}
+  .chain .r{background:rgba(217,169,79,0.18);color:var(--rabbit);}
+  .chain .f{background:rgba(193,83,46,0.18);color:var(--fox);}
+  .layout{
+    display:grid;
+    grid-template-columns:260px 1fr;
+    gap:24px;
+  }
+  @media (max-width:720px){.layout{grid-template-columns:1fr;}}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px;
+  }
+  .panel h3{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--muted);
+    margin:0 0 14px;
+    font-weight:500;
+  }
+  .slider-row{margin-bottom:16px;}
+  .slider-row label{
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    margin-bottom:6px;
+    color:var(--cream);
+  }
+  .slider-row label b{font-weight:600;}
+  input[type=range]{
+    width:100%;
+    accent-color:var(--grass);
+  }
+  button{
+    font-family:'Inter',sans-serif;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--cream);
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:13px;
+    cursor:pointer;
+    width:100%;
+    margin-bottom:8px;
+    transition:background 0.15s;
+  }
+  button:hover:not(:disabled){background:#2c4634;}
+  button:disabled{opacity:0.35;cursor:not-allowed;}
+  #startBtn{background:var(--grass);color:#16261c;font-weight:600;border:none;}
+  #startBtn:hover{background:#b1d456;}
+  .event-btn{font-size:12px;text-align:left;}
+  .event-btn .desc{display:block;color:var(--muted);font-size:11px;margin-top:2px;}
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-bottom:18px;
+  }
+  .stat{
+    background:var(--card);
+    border-radius:12px;
+    padding:14px;
+    text-align:center;
+  }
+  .stat .num{
+    font-family:'Fraunces',serif;
+    font-size:24px;
+    font-weight:600;
+  }
+  .stat .lab{font-size:11px;color:var(--muted);margin-top:4px;}
+  .stat.g .num{color:var(--grass);}
+  .stat.r .num{color:var(--rabbit);}
+  .stat.f .num{color:var(--fox);}
+  #chartWrap{
+    background:var(--card);
+    border-radius:14px;
+    padding:16px;
+    position:relative;
+    height:260px;
+  }
+  .legend{
+    display:flex;
+    gap:16px;
+    font-size:12px;
+    color:var(--muted);
+    margin:12px 0 0;
+  }
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  #message{
+    margin-top:16px;
+    padding:14px 16px;
+    border-radius:12px;
+    font-size:14px;
+    line-height:1.6;
+    display:none;
+  }
+  #message.show{display:block;}
+  #message.ok{background:rgba(156,191,61,0.15);border:1px solid var(--grass);color:var(--grass);}
+  #message.bad{background:rgba(193,83,46,0.15);border:1px solid var(--warn);color:#e8a893;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="title">생태계 균형 시뮬레이터</h1>
+  <div class="chain">
+    <span class="g">풀 (생산자)</span> → <span class="r">토끼 (1차 소비자)</span> → <span class="f">여우 (2차 소비자)</span>
+  </div>
+
+  <div class="layout">
+    <div class="panel" id="controlPanel">
+      <h3>초기 개체수 설정</h3>
+      <div class="slider-row">
+        <label>풀 <b id="gVal">500</b></label>
+        <input type="range" id="gSlider" min="100" max="900" value="500" step="10">
+      </div>
+      <div class="slider-row">
+        <label>토끼 <b id="rVal">50</b></label>
+        <input type="range" id="rSlider" min="10" max="150" value="50" step="5">
+      </div>
+      <div class="slider-row">
+        <label>여우 <b id="fVal">10</b></label>
+        <input type="range" id="fSlider" min="2" max="40" value="10" step="1">
+      </div>
+      <button id="startBtn">시뮬레이션 시작</button>
+      <button id="resetBtn" disabled>초기화</button>
+
+      <h3 style="margin-top:22px;">환경 이벤트</h3>
+      <button class="event-btn" id="ev-drought" disabled>가뭄<span class="desc">풀 개체수 40% 감소</span></button>
+      <button class="event-btn" id="ev-rain" disabled>풍년<span class="desc">풀 개체수 40% 증가</span></button>
+      <button class="event-btn" id="ev-disease" disabled>전염병<span class="desc">토끼 개체수 50% 감소</span></button>
+      <button class="event-btn" id="ev-hunt" disabled>밀렵<span class="desc">여우 개체수 50% 감소</span></button>
+    </div>
+
+    <div>
+      <div class="stats">
+        <div class="stat g"><div class="num" id="statG">500</div><div class="lab">풀</div></div>
+        <div class="stat r"><div class="num" id="statR">50</div><div class="lab">토끼</div></div>
+        <div class="stat f"><div class="num" id="statF">10</div><div class="lab">여우</div></div>
+        <div class="stat"><div class="num" id="statT">0</div><div class="lab">경과 (턴)</div></div>
+      </div>
+      <div id="chartWrap">
+        <canvas id="chart"></canvas>
+      </div>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--grass)"></i>풀 (시작 대비 %)</span>
+        <span><i class="dot" style="background:var(--rabbit)"></i>토끼 (시작 대비 %)</span>
+        <span><i class="dot" style="background:var(--fox)"></i>여우 (시작 대비 %)</span>
+      </div>
+      <div id="message"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const gSlider=document.getElementById('gSlider');
+const rSlider=document.getElementById('rSlider');
+const fSlider=document.getElementById('fSlider');
+const gVal=document.getElementById('gVal');
+const rVal=document.getElementById('rVal');
+const fVal=document.getElementById('fVal');
+const startBtn=document.getElementById('startBtn');
+const resetBtn=document.getElementById('resetBtn');
+const evButtons=['ev-drought','ev-rain','ev-disease','ev-hunt'].map(id=>document.getElementById(id));
+const statG=document.getElementById('statG');
+const statR=document.getElementById('statR');
+const statF=document.getElementById('statF');
+const statT=document.getElementById('statT');
+const messageEl=document.getElementById('message');
+const canvas=document.getElementById('chart');
+const ctx=canvas.getContext('2d');
+
+gSlider.oninput=()=>gVal.textContent=gSlider.value;
+rSlider.oninput=()=>rVal.textContent=rSlider.value;
+fSlider.oninput=()=>fVal.textContent=fSlider.value;
+
+let state=null;
+let timer=null;
+let history=[];
+let startVals={};
+
+const PARAMS={
+  r:0.2, K:1000,
+  a1:0.08, h1:200, b1:0.5, d1:0.05,
+  a2:0.06, h2:30, b2:0.4, d2:0.08
+};
+
+function resizeCanvas(){
+  const wrap=document.getElementById('chartWrap');
+  canvas.width=wrap.clientWidth-32;
+  canvas.height=wrap.clientHeight-32;
+  drawChart();
+}
+window.addEventListener('resize',resizeCanvas);
+
+function step(){
+  let {grass,rabbits,foxes}=state;
+  const eaten = PARAMS.a1*grass*rabbits/(grass+PARAMS.h1);
+  const predation = PARAMS.a2*rabbits*foxes/(rabbits+PARAMS.h2);
+
+  let newGrass = grass + PARAMS.r*grass*(1-grass/PARAMS.K) - eaten;
+  let newRabbits = rabbits + PARAMS.b1*eaten - PARAMS.d1*rabbits - predation;
+  let newFoxes = foxes + PARAMS.b2*predation - PARAMS.d2*foxes;
+
+  grass = Math.max(0, newGrass);
+  rabbits = Math.max(0, newRabbits);
+  foxes = Math.max(0, newFoxes);
+
+  if(grass<1) grass=0;
+  if(rabbits<1) rabbits=0;
+  if(foxes<1) foxes=0;
+
+  state.grass=grass; state.rabbits=rabbits; state.foxes=foxes;
+  state.t += 1;
+
+  history.push({t:state.t, grass, rabbits, foxes});
+  if(history.length>200) history.shift();
+
+  updateStats();
+  drawChart();
+
+  if(grass===0 || rabbits===0 || foxes===0){
+    endGame(false);
+    return;
+  }
+  if(state.t>=200){
+    endGame(true);
+  }
+}
+
+function updateStats(){
+  statG.textContent=Math.round(state.grass);
+  statR.textContent=Math.round(state.rabbits);
+  statF.textContent=Math.round(state.foxes);
+  statT.textContent=state.t;
+}
+
+function drawChart(){
+  if(!canvas.width) return;
+  const w=canvas.width, h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  if(history.length<2) return;
+
+  ctx.strokeStyle='#3a5240';
+  ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=h - (h*i/4);
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(w,y);
+    ctx.stroke();
+  }
+
+  const maxT=history[history.length-1].t;
+  const minT=Math.max(0,maxT-200);
+  const span=Math.max(1,maxT-minT);
+
+  function plot(key,color){
+    ctx.beginPath();
+    ctx.strokeStyle=color;
+    ctx.lineWidth=2;
+    history.forEach((pt,i)=>{
+      const pct=Math.min(150, (pt[key]/startVals[key])*100);
+      const x=((pt.t-minT)/span)*w;
+      const y=h - (Math.min(pct,150)/150)*h;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  }
+  plot('grass','#9cbf3d');
+  plot('rabbits','#d9a94f');
+  plot('foxes','#c1532e');
+}
+
+function endGame(success){
+  clearInterval(timer);
+  timer=null;
+  evButtons.forEach(b=>b.disabled=true);
+  resetBtn.disabled=false;
+  messageEl.classList.add('show');
+  if(success){
+    messageEl.classList.add('ok');
+    messageEl.classList.remove('bad');
+    messageEl.textContent = '생태계 평형 달성! 200턴 동안 풀, 토끼, 여우가 모두 생존하며 개체수 균형을 유지했습니다. 이는 먹이사슬의 각 단계가 서로를 조절하는 되먹임(피드백) 관계를 보여줍니다.';
+  } else {
+    messageEl.classList.add('bad');
+    messageEl.classList.remove('ok');
+    let cause='';
+    if(state.grass===0) cause='풀이 모두 소진되어 1차 소비자(토끼)가 먹이를 잃었습니다.';
+    else if(state.rabbits===0) cause='토끼(1차 소비자)가 사라져 여우(2차 소비자)가 먹이를 잃고, 풀을 조절할 소비자도 없어졌습니다.';
+    else if(state.foxes===0) cause='여우(2차 소비자)가 사라져 토끼 개체수를 억제할 포식자가 없어졌습니다.';
+    messageEl.textContent = state.t+'턴에 생태계가 붕괴했습니다. '+cause+' 한 영양단계의 붕괴는 먹이사슬 전체에 연쇄적으로 영향을 미칩니다.';
+  }
+}
+
+startBtn.onclick=()=>{
+  state={
+    grass:parseFloat(gSlider.value),
+    rabbits:parseFloat(rSlider.value),
+    foxes:parseFloat(fSlider.value),
+    t:0
+  };
+  startVals={grass:state.grass,rabbits:state.rabbits,foxes:state.foxes};
+  history=[{t:0,grass:state.grass,rabbits:state.rabbits,foxes:state.foxes}];
+  messageEl.classList.remove('show','ok','bad');
+
+  [gSlider,rSlider,fSlider,startBtn].forEach(el=>el.disabled=true);
+  evButtons.forEach(b=>b.disabled=false);
+  resetBtn.disabled=false;
+
+  updateStats();
+  resizeCanvas();
+
+  timer=setInterval(step,400);
+};
+
+resetBtn.onclick=()=>{
+  clearInterval(timer);
+  timer=null;
+  state=null;
+  history=[];
+  messageEl.classList.remove('show','ok','bad');
+  [gSlider,rSlider,fSlider,startBtn].forEach(el=>el.disabled=false);
+  evButtons.forEach(b=>b.disabled=true);
+  resetBtn.disabled=true;
+  statG.textContent=gSlider.value;
+  statR.textContent=rSlider.value;
+  statF.textContent=fSlider.value;
+  statT.textContent='0';
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+};
+
+document.getElementById('ev-drought').onclick=()=>{ if(state){ state.grass*=0.6; updateStats(); } };
+document.getElementById('ev-rain').onclick=()=>{ if(state){ state.grass=Math.min(PARAMS.K,state.grass*1.4); updateStats(); } };
+document.getElementById('ev-disease').onclick=()=>{ if(state){ state.rabbits*=0.5; updateStats(); } };
+document.getElementById('ev-hunt').onclick=()=>{ if(state){ state.foxes*=0.5; updateStats(); } };
+
+window.addEventListener('load',resizeCanvas);
+setTimeout(resizeCanvas,100);
+</script>
+</body>
+</html>
